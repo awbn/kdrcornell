@@ -1,0 +1,13 @@
+global:
+  env:
+    - PLATFORM: pagodabox
+
+web1:
+  name: www
+  document_root: /public
+  php_version: 5.3.6
+  php_display_errors: "0"
+  shared_writable_dirs:
+    - /application/cache
+    - /application/logs
+    - /backups
