@@ -40,7 +40,7 @@ script:
   ### DEPLOYMENT ###
   # Deploy to Pagodabox
   - export COMMIT_MSG=$(git log -1 --pretty=%B)
-  - if [ "$TRAVIS_TEST_RESULT" -eq "0" ] && [ "$TRAVIS_PULL_REQUEST" != "true" ] && [ "$PAGODABOX_APP" != "NULL" && [[ "$COMMIT_MSG" != *"[ci skip-deploy]"* ]]; then export DEPLOY=1; else export DEPLOY=0; fi
+  - if [ "$TRAVIS_TEST_RESULT" -eq "0" ] && [ "$TRAVIS_PULL_REQUEST" != "true" ] && [ "$PAGODABOX_APP" != "NULL" ] && [[ "$COMMIT_MSG" != *"[ci skip-deploy]"* ]]; then export DEPLOY=1; else export DEPLOY=0; fi
   - if [ "$DEPLOY" -eq "1" ]; then echo "${GREEN}Deploying branch '$TRAVIS_BRANCH' to '$PAGODABOX_APP'"; else echo "${RED} Skipping automatic deployment due to branch and/or validation failure"; fi
   - ssh-keygen -N "" -f ~/.ssh/pagoda
   - gem install pagoda
