@@ -6,6 +6,7 @@ branches:
   only:
     - master
     - staging
+    - release
 
 notifications:
   email:
@@ -30,7 +31,7 @@ env:
 
 before_install:
   - git submodule update --init --recursive
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then export PAGODABOX_APP=$PAGODABOX_PROD; else export PAGODABOX_APP=$PAGODABOX_STAGING; fi
+  - if [ "$TRAVIS_BRANCH" == "release" ]; then export PAGODABOX_APP=$PAGODABOX_PROD; elif [ "$TRAVIS_BRANCH" == "staging" ]; then export PAGODABOX_APP=$PAGODABOX_STAGING; else export PAGODABOX_APP="NULL"; fi
 
 script:
   ### TESTS ###
@@ -38,8 +39,9 @@ script:
   - if [ ! -f "./Boxfile" ]; then echo "${RED}Pagodabox Boxfile Missing."; export TRAVIS_TEST_RESULT=1; fi
   ### DEPLOYMENT ###
   # Deploy to Pagodabox
-  - echo "${GREEN}Deploying branch '$TRAVIS_BRANCH' to '$PAGODABOX_APP'"
-  - if [ "$TRAVIS_TEST_RESULT" -eq "0" ] && [ "$TRAVIS_PULL_REQUEST" != "true" ]; then export DEPLOY=1; else export DEPLOY=0; fi
+  - export COMMIT_MSG=$(git log -1 --pretty=%B)
+  - if [ "$TRAVIS_TEST_RESULT" -eq "0" ] && [ "$TRAVIS_PULL_REQUEST" != "true" ] && [ "$PAGODABOX_APP" != "NULL" && [[ "$COMMIT_MSG" != *"[ci skip-deploy]"* ]]; then export DEPLOY=1; else export DEPLOY=0; fi
+  - if [ "$DEPLOY" -eq "1" ]; then echo "${GREEN}Deploying branch '$TRAVIS_BRANCH' to '$PAGODABOX_APP'"; else echo "${RED} Skipping automatic deployment due to branch and/or validation failure"; fi
   - ssh-keygen -N "" -f ~/.ssh/pagoda
   - gem install pagoda
   - if [ "$DEPLOY" -eq "1" ]; then pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD key:push --file=$HOME/.ssh/pagoda.pub; fi
@@ -51,4 +53,4 @@ script:
   - echo "   IdentitiesOnly yes" >> ~/.ssh/config
   - git remote add pagoda git@git.pagodabox.com:$PAGODABOX_APP.git
   - if [ "$DEPLOY" -eq "1" ]; then git push --force pagoda $TRAVIS_BRANCH; fi
-  - if [ "$DEPLOY" -eq "1" ]; then pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD --app=$PAGODABOX_APP deploy; else echo "${RED}Build failed or is a pull request.  Skipping Pagoda deployment."; fi
+  - if [ "$DEPLOY" -eq "1" ]; then pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD --app=$PAGODABOX_APP deploy; fi
