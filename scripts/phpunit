@@ -1,0 +1,4 @@
+#!/bin/bash
+# Usage: From repo root: ./scripts/phpunit
+# Optional: specify groups to test against
+phpunit -d memory_limit=512M --colors --bootstrap=modules/unittest/bootstrap.php "$@"  modules/unittest/tests.php
