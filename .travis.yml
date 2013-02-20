@@ -38,7 +38,7 @@ script:
   # Verify Pagodabox Boxfile exists
   - if [ ! -f "./Boxfile" ]; then echo "${RED}Pagodabox Boxfile Missing."; export TRAVIS_TEST_RESULT=1; fi
   # Run PHPUnit
-  - ./scripts/phpunit
+  - ./scripts/phpunit  --exclude-group=kohana.core.request.client.internal
   ### DEPLOYMENT ###
   # Deploy to Pagodabox
   - export COMMIT_MSG=$(git log -1 --pretty=%B)

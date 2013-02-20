@@ -1,21 +1,21 @@
 [submodule "system"]
 	path = system
-	url = git@github.com:kohana/core.git
+	url = git://github.com/kohana/core.git
 [submodule "modules/database"]
 	path = modules/database
-	url = git@github.com:kohana/database.git
+	url = git://github.com/kohana/database.git
 [submodule "modules/cache"]
 	path = modules/cache
-	url = git@github.com:kohana/cache.git
+	url = git://github.com/kohana/cache.git
 [submodule "modules/minion"]
 	path = modules/minion
-	url = git@github.com:kohana/minion.git
+	url = git://github.com/kohana/minion.git
 [submodule "modules/orm"]
 	path = modules/orm
-	url = git@github.com:kohana/orm.git
+	url = git://github.com/kohana/orm.git
 [submodule "modules/unittest"]
 	path = modules/unittest
-	url = git@github.com:kohana/unittest.git
+	url = git://github.com/kohana/unittest.git
 [submodule "modules/common"]
 	path = modules/common
-	url = git@github.com:awbn/kohana-common.git
+	url = git://github.com/awbn/kohana-common.git
