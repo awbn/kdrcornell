@@ -75,6 +75,23 @@ if (isset($_SERVER['KOHANA_ENV']))
 }
 
 /**
+ *
+ * Enable the Common module's exception handler
+ *
+ * Must include the initiation here, outside of the common module.
+ * If loaded after Kohana::init(), e.g. when modules' init are processed,
+ * Kohana_exception is already defined.
+ * 
+ * Wrap in an if statement to allow the app to override further.
+ * Kohana will load the APPPATH version automatically, if present
+ */
+
+if (!file_exists(APPPATH."classes/Kohaha/Exception".EXT) AND file_exists(MODPATH."common/classes/Kohana/Exception".EXT))
+{
+	require_once MODPATH."common/classes/Kohana/Exception".EXT;
+}
+
+/**
  * Initialize Kohana, setting the default options.
  *
  * The following options are available:
