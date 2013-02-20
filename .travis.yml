@@ -33,12 +33,18 @@ before_install:
   - git submodule update --init --recursive
   - if [ "$TRAVIS_BRANCH" == "release" ]; then export PAGODABOX_APP=$PAGODABOX_PROD; elif [ "$TRAVIS_BRANCH" == "staging" ]; then export PAGODABOX_APP=$PAGODABOX_STAGING; else export PAGODABOX_APP="NULL"; fi
 
+before_script:
+  - "pear channel-discover pear.phing.info"
+  - "pear install phing/phing"
+  - "phpenv rehash"
+  - "composer install"
+
 script:
   ### TESTS ###
   # Verify Pagodabox Boxfile exists
   - if [ ! -f "./Boxfile" ]; then echo "${RED}Pagodabox Boxfile Missing."; export TRAVIS_TEST_RESULT=1; fi
-  # Run PHPUnit
-  - ./scripts/phpunit  --exclude-group=kohana.core.request.client.internal
+  # Run Unittests
+  - phing test
   ### DEPLOYMENT ###
   # Deploy to Pagodabox
   - export COMMIT_MSG=$(git log -1 --pretty=%B)

@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<project name="awbn-kohana" default="help">
+	<property environment="env"/>
+
+	<property name="basedir" value="${project.basedir}"/>
+
+	<target name="help">
+		<echo message="General Targets"/>
+		<echo message="==============="/>
+		<echo message="phing test              Run unit tests."/>
+	</target>
+
+	<!-- Run unit tests -->
+	<target name="test">
+		<exec command="./vendor/phpunit/phpunit/composer/bin/phpunit -d memory_limit=512M --colors --bootstrap=modules/unittest/bootstrap_all_modules.php modules/unittest/tests.php" checkreturn="true" passthru="true"/>
+	</target>
+</project>
