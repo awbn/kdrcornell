@@ -38,7 +38,7 @@
 	</target>
 
 	<target name="_install_dependencies" hidden="true">
-		<exec command="composer install --dev" checkreturn="true" passthru="true" />
+		<exec command="composer install" checkreturn="true" passthru="true" />
 		<!-- TODO: better way of getting coding standards -->
 		<exec command="git clone git://github.com/awbn/kohana-coding-standards.git vendor/kohana-coding-standards" checkreturn="true" passthru="true" />
 	</target>
@@ -54,16 +54,22 @@
 					<contains substring="[ci skip-deploy]" string="${git.lastcommitmsg}" casesensitive="false" />
 				</not>
 				<then>
-					<phingcall target="_install_pagoda" />
-					<phingcall target="_get_pagoda_settings" />
-					<phingcall target="_set_pagoda_key" />
 					<phingcall target="_get_branch" />
+					<phingcall target="_get_pagoda_settings" />
+
+					<phingcall target="_install_pagoda" />
+					<phingcall target="_set_pagoda_key" />
 					<phingcall target="_pagoda_deploy" />
 				</then>
 				<else>
    					<echo message="Git commit message contained deployment skip flag.  Deployment skipped." />
  				</else>
  			</if>
+	</target>
+
+	<target name="temp">
+		<phingcall target="_get_pagoda_settings" />
+		<echo message="User: ${env.PAGODABOX_USERNAME}" />
 	</target>
 
 	<!-- Generate SSH key and push to PagodaBox -->
@@ -78,7 +84,7 @@
 					<exec command="echo '   StrictHostKeyChecking no' >> ~/.ssh/config" checkreturn="true" />
 					<exec command="echo '   CheckHostIP yes' >> ~/.ssh/config" checkreturn="true" />
 					<exec command="echo '   UserKnownHostsFile=/dev/null' >> ~/.ssh/config" checkreturn="true" />
-					<exec command="echo '   IdentityFile=${HOME}/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true"/>
+					<exec command="echo '   IdentityFile=~/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true"/>
 					<exec command="echo '   IdentitiesOnly yes' >> ~/.ssh/config" checkreturn="true" />
 			</then>
 		</if>
