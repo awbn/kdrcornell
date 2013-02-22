@@ -40,37 +40,25 @@
 	<target name="_install_dependencies" hidden="true">
 		<exec command="composer install --dev" checkreturn="true" passthru="true" />
 		<!-- TODO: better way of getting coding standards -->
-		<exec command="git clone git clone git://github.com/awbn/kohana-coding-standards.git vendor/kohana-coding-standards" checkreturn="true" passthru="true" />
+		<exec command="git clone git://github.com/awbn/kohana-coding-standards.git vendor/kohana-coding-standards" checkreturn="true" passthru="true" />
 	</target>
 
 	<target name="_git_init" hidden="true">
 		<exec command="git submodule update --init --recursive" checkreturn="true" passthru="true" />
 	</target>
 
-	<target name="_pagodabox_deploy" hidden="true">
+	<target name="_deploy" hidden="true">
 			<exec command="git log -1 --pretty=%B" returnProperty="git.lastcommitmsg" />
 			<if>
 				<not>
 					<contains substring="[ci skip-deploy]" string="${git.lastcommitmsg}" casesensitive="false" />
 				</not>
 				<then>
-					<!-- Generate SSH key and push to PagodaBox -->
-					<exec command="ssh-keygen -N '' -f ~/.ssh/pagoda" checkreturn="true" passthru="true" />
-					<exec command="gem install pagoda" checkreturn="true" passthru="true" />
-					<exec command="pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD key:push --file=$HOME/.ssh/pagoda.pub" checkreturn="true" passthru="true" />
-
-					<!-- Setup PagodaBox as a known target with SSH -->
-					<exec command="echo 'Host git.pagodabox.com' >> ~/.ssh/config" checkreturn="true" passthru="true" />
-					<exec command="echo '   StrictHostKeyChecking no' >> ~/.ssh/config" checkreturn="true" passthru="true" />
-					<exec command="echo '   CheckHostIP yes' >> ~/.ssh/config" checkreturn="true" passthru="true" />
-					<exec command="echo '   UserKnownHostsFile=/dev/null' >> ~/.ssh/config" checkreturn="true" passthru="true" />
-					<exec command="echo '   IdentityFile=${HOME}/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true" passthru="true" />
-					<exec command="echo '   IdentitiesOnly yes' >> ~/.ssh/config" checkreturn="true" passthru="true" />
-
-					<!-- Deploy... -->
-					<exec command="git remote add pagoda git@git.pagodabox.com:$PAGODABOX_APP.git" checkreturn="true" passthru="true" />
-					<exec command="git push --force pagoda $TRAVIS_BRANCH" checkreturn="true" passthru="true" />
-					<exec command="pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD --app=$PAGODABOX_APP deploy" checkreturn="true" passthru="true" />
+					<phingcall target="_install_pagoda" />
+					<phingcall target="_get_pagoda_settings" />
+					<phingcall target="_set_pagoda_key" />
+					<phingcall target="_get_branch" />
+					<phingcall target="_pagoda_deploy" />
 				</then>
 				<else>
    					<echo message="Git commit message contained deployment skip flag.  Deployment skipped." />
@@ -78,8 +66,76 @@
  			</if>
 	</target>
 
+	<!-- Generate SSH key and push to PagodaBox -->
+	<target name="_set_pagoda_key" hidden="true">
+		<if>
+			<not>
+				<available file="~/.ssh/pagoda" />
+			</not>
+			<then>
+				<exec command="ssh-keygen -N '' -f ~/.ssh/pagoda" checkreturn="true" />
+				<exec command="echo 'Host git.pagodabox.com' >> ~/.ssh/config" checkreturn="true" />
+					<exec command="echo '   StrictHostKeyChecking no' >> ~/.ssh/config" checkreturn="true" />
+					<exec command="echo '   CheckHostIP yes' >> ~/.ssh/config" checkreturn="true" />
+					<exec command="echo '   UserKnownHostsFile=/dev/null' >> ~/.ssh/config" checkreturn="true" />
+					<exec command="echo '   IdentityFile=${HOME}/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true"/>
+					<exec command="echo '   IdentitiesOnly yes' >> ~/.ssh/config" checkreturn="true" />
+			</then>
+		</if>
+		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} key:push --file=~/.ssh/pagoda.pub" checkreturn="true" />
+	</target>
+
+	<target name="_pagoda_deploy" hidden="true">
+		<exec command="git remote add pagoda git@git.pagodabox.com:${env.PAGODABOX_APP}.git" checkreturn="true" />
+		<exec command="git push --force pagoda ${git.branch}" checkreturn="true" />
+		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} --app=${env.PAGODABOX_APP} deploy" checkreturn="true" passthru="true" />
+	</target>
+
+	<!-- Get Pagodabox settings -->
+	<target name="_get_pagoda_settings" hidden="true">
+		
+		<propertyprompt propertyName="env.PAGODABOX_USERNAME" useExistingValue="true" promptText="Pagodabox Username" />
+
+		<propertyprompt propertyName="env.PAGODABOX_PASSWORD" useExistingValue="true" promptText="Pagodabox Password" />
+
+		<propertyprompt propertyName="env.PAGODABOX_APP" useExistingValue="true" promptText="Pagodabox Application" />
+	</target>
+
+	<target name="_get_branch" hidden="true">
+		<if>
+			<not>
+				<isset property="git.branch" />
+			</not>
+			<then>
+				<if>
+					<isset property="env.TRAVIS_BRANCH" />
+					<then>
+						<property name="git.branch" value="${env.TRAVIS_BRANCH}" override="true" />
+					</then>
+					<else>
+						<exec command="git rev-parse --abbrev-ref HEAD" outputProperty="git.working_branch" />
+						<propertyprompt propertyName="git.branch" defaultValue="${git.working_branch}" promptText="Which git branch?" />
+					</else>
+				</if>
+			</then>
+		</if>
+	</target>
+
+	<target name="_install_pagoda" hidden="true">
+		<exec command="which pagoda" returnProperty="which.pagoda" />
+		<if>
+			<not>
+				<equals arg1="${which.pagoda}" arg2="0" />
+			</not>
+			<then>
+				<exec command="sudo gem install pagoda" checkreturn="true" passthru="true" />
+			</then>
+		</if>
+	</target>
+
+	<!-- PHP CodeSniffer -->
 	<target name="phpcs">
-		<propertyprompt propertyName="phpcs.directory" defaultValue="./application/" promptText="Directory to scan" />
+		<propertyprompt propertyName="phpcs.directory" useExistingValue="true" defaultValue="./application/" promptText="Directory to scan" />
 		<exec command="./vendor/bin/phpcs --standard=./vendor/kohana-coding-standards/PHP/CodeSniffer/Standards/Kohana --extensions=php --ignore=*/vendor/*,*/tests/* ${phpcs.directory}" checkreturn="false" passthru="true" />
 	</target>
 
