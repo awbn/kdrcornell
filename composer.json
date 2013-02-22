@@ -1,5 +1,10 @@
 {
 	"require": {
-		"phpunit/phpunit": "3.7.*"
+		"php": ">=5.3.6"
+	},
+	"require-dev":{
+		"phpunit/phpunit": "3.7.*",
+        "squizlabs/php_codesniffer": "1.*",
+        "phpmd/phpmd": "1.*"
 	}
 }

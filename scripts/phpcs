@@ -1,3 +1,0 @@
-#!/bin/bash
-# Usage: From repo root, run ./scripts/phpcs application
-phpcs --standard=Kohana --ignore=system/*,modules/auth/*,modules/database/*,modules/orm/*,modules/unittest/*,modules/profilertoolbar/*,modules/cache/*,public/index.php -s  --tab-width=4 "$@"

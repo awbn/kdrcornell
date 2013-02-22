@@ -4,7 +4,7 @@
  * Load in all environments
  */
 $modules = array(
-	'common'		=> MODPATH.'common'		//Kohana common module
+	'common'		=> MODPATH.'common'		// Kohana common module
 	// 'auth'       => MODPATH.'auth',       // Basic authentication
 	// 'cache'      => MODPATH.'cache',      // Caching with multiple backends
 	// 'codebench'  => MODPATH.'codebench',  // Benchmarking tool

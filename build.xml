@@ -5,13 +5,95 @@
 	<property name="basedir" value="${project.basedir}"/>
 
 	<target name="help">
-		<echo message="General Targets"/>
+		<echo message="General Tasks"/>
 		<echo message="==============="/>
-		<echo message="phing test              Run unit tests."/>
+		<echo message="phing tests 				Run unit tests"/>
+		<echo message="phing phpcs 				Run phpcs"/>
+		<echo message=""/>
+		<echo message="Developer Tasks"/>
+		<echo message="========================"/>
+		<echo message="phing dev-setup			Setup for development"/>
+		<echo message=""/>
+		<echo message="Misc Tasks"/>
+		<echo message="========================"/>
+		<echo message="phing ci-setup 			Setup for Continuous Integration"/>
 	</target>
 
 	<!-- Run unit tests -->
 	<target name="test">
-		<exec command="./vendor/phpunit/phpunit/composer/bin/phpunit -d memory_limit=512M --colors --bootstrap=modules/unittest/bootstrap_all_modules.php modules/unittest/tests.php" checkreturn="true" passthru="true"/>
+		<exec command="./vendor/bin/phpunit -d memory_limit=512M --colors --bootstrap=modules/unittest/bootstrap_all_modules.php modules/unittest/tests.php" checkreturn="true" passthru="true"/>
+	</target>
+
+	<target name="_install_composer" hidden="true">
+		<exec command="which composer" returnProperty="which.composer" />
+		<if>
+			<not>
+				<equals arg1="${which.composer}" arg2="0" />
+			</not>
+			<then>
+				<exec command="sudo curl -sS https://getcomposer.org/installer | php" checkreturn="true" passthru="true" />
+				<exec command="sudo mv composer.phar /usr/local/bin/composer" checkreturn="true" passthru="true" />
+			</then>
+		</if>	
+	</target>
+
+	<target name="_install_dependencies" hidden="true">
+		<exec command="composer install --dev" checkreturn="true" passthru="true" />
+		<!-- TODO: better way of getting coding standards -->
+		<exec command="git clone git clone git://github.com/awbn/kohana-coding-standards.git vendor/kohana-coding-standards" checkreturn="true" passthru="true" />
+	</target>
+
+	<target name="_git_init" hidden="true">
+		<exec command="git submodule update --init --recursive" checkreturn="true" passthru="true" />
+	</target>
+
+	<target name="_pagodabox_deploy" hidden="true">
+			<exec command="git log -1 --pretty=%B" returnProperty="git.lastcommitmsg" />
+			<if>
+				<not>
+					<contains substring="[ci skip-deploy]" string="${git.lastcommitmsg}" casesensitive="false" />
+				</not>
+				<then>
+					<!-- Generate SSH key and push to PagodaBox -->
+					<exec command="ssh-keygen -N '' -f ~/.ssh/pagoda" checkreturn="true" passthru="true" />
+					<exec command="gem install pagoda" checkreturn="true" passthru="true" />
+					<exec command="pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD key:push --file=$HOME/.ssh/pagoda.pub" checkreturn="true" passthru="true" />
+
+					<!-- Setup PagodaBox as a known target with SSH -->
+					<exec command="echo 'Host git.pagodabox.com' >> ~/.ssh/config" checkreturn="true" passthru="true" />
+					<exec command="echo '   StrictHostKeyChecking no' >> ~/.ssh/config" checkreturn="true" passthru="true" />
+					<exec command="echo '   CheckHostIP yes' >> ~/.ssh/config" checkreturn="true" passthru="true" />
+					<exec command="echo '   UserKnownHostsFile=/dev/null' >> ~/.ssh/config" checkreturn="true" passthru="true" />
+					<exec command="echo '   IdentityFile=${HOME}/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true" passthru="true" />
+					<exec command="echo '   IdentitiesOnly yes' >> ~/.ssh/config" checkreturn="true" passthru="true" />
+
+					<!-- Deploy... -->
+					<exec command="git remote add pagoda git@git.pagodabox.com:$PAGODABOX_APP.git" checkreturn="true" passthru="true" />
+					<exec command="git push --force pagoda $TRAVIS_BRANCH" checkreturn="true" passthru="true" />
+					<exec command="pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD --app=$PAGODABOX_APP deploy" checkreturn="true" passthru="true" />
+				</then>
+				<else>
+   					<echo message="Git commit message contained deployment skip flag.  Deployment skipped." />
+ 				</else>
+ 			</if>
+	</target>
+
+	<target name="phpcs">
+		<propertyprompt propertyName="phpcs.directory" defaultValue="./application/" promptText="Directory to scan" />
+		<exec command="./vendor/bin/phpcs --standard=./vendor/kohana-coding-standards/PHP/CodeSniffer/Standards/Kohana --extensions=php --ignore=*/vendor/*,*/tests/* ${phpcs.directory}" checkreturn="false" passthru="true" />
+	</target>
+
+	<target name="dev-setup">
+		<phingcall target="_install_composer" />
+		<phingcall target="_install_dependencies" />
+		<phingcall target="_git_init" />
+		<exec command="sudo chmod 777 ./application/cache" checkreturn="true" passthru="true" />
+		<exec command="sudo chmod 777 ./application/logs" checkreturn="true" passthru="true" />
+	</target>
+
+	<target name="ci-setup">
+		<phingcall target="_install_composer" />
+        <phingcall target="_install_dependencies" />
+		<phingcall target="_git_init" />
 	</target>
 </project>
