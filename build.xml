@@ -243,6 +243,8 @@
 		<php expression="extension_loaded('mbstring')" returnProperty="kohana.mbstring"/>
 		<php expression="(ini_get('mbstring.func_overload') AND MB_OVERLOAD_STRING)" returnProperty="kohana.mbstringoverload"/>
 		<php expression="function_exists('ctype_digit')" returnProperty="kohana.ctype"/>
+		<php expression="( ! @preg_match('/^.$/u', 'ñ'))" returnProperty="kohana.utf8" />
+		<php expression="( ! @preg_match('/^\pL$/u', 'ñ'))" returnProperty="kohana.unicode" />
 		<echo message="==================================" />
 		<echo message="Recommended Components:" />
 		<php expression="extension_loaded('http')" returnProperty="kohana.http"/>
@@ -263,6 +265,8 @@
 				<isfalse value="${kohana.mbstring}" />
 				<istrue value="${kohana.mbstringoverload}" />
 				<isfalse value="${kohana.ctype}" />
+				<istrue value="${kohana.utf8}" />
+				<istrue value="${kohana.unicode}" />
 			</or>
 			<then>
 				<fail message="One or more Kohana requirements failed." />
