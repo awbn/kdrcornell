@@ -13,17 +13,23 @@
 		<echo message="Developer Tasks"/>
 		<echo message="========================"/>
 		<echo message="phing dev-setup			Setup for development"/>
+		<echo message="phing deploy				Deploy to Pagodabox" />
 		<echo message=""/>
 		<echo message="Misc Tasks"/>
 		<echo message="========================"/>
 		<echo message="phing ci-setup 			Setup for Continuous Integration"/>
+		<echo message="phing ci-deploy			Automated deployment to Pagodabox" />
+		<echo message="phing verify-kohana		Verify environment works for Kohana" />
+		<echo message="phing verify-pagoda		Verify environment works for Pagodabox" />
+
 	</target>
 
 	<!-- Run unit tests -->
-	<target name="test">
+	<target name="test" description="Run unit tests with PHPUnit">
 		<exec command="./vendor/bin/phpunit -d memory_limit=512M --colors --bootstrap=modules/unittest/bootstrap_all_modules.php modules/unittest/tests.php" checkreturn="true" passthru="true"/>
 	</target>
 
+	<!-- Install composer -->
 	<target name="_install_composer" hidden="true">
 		<exec command="which composer" returnProperty="which.composer" />
 		<if>
@@ -31,32 +37,30 @@
 				<equals arg1="${which.composer}" arg2="0" />
 			</not>
 			<then>
-				<exec command="sudo curl -sS https://getcomposer.org/installer | php" checkreturn="true" passthru="true" />
-				<exec command="sudo mv composer.phar /usr/local/bin/composer" checkreturn="true" passthru="true" />
+				<exec command="sudo curl -sS https://getcomposer.org/installer | php" checkreturn="true" />
+				<exec command="sudo mv composer.phar /usr/local/bin/composer" checkreturn="true" />
 			</then>
 		</if>	
 	</target>
 
+	<!-- Install project dependencies -->
 	<target name="_install_dependencies" hidden="true">
 		<exec command="composer install" checkreturn="true" passthru="true" />
-		<!-- TODO: better way of getting coding standards -->
-		<exec command="git clone git://github.com/awbn/kohana-coding-standards.git vendor/kohana-coding-standards" checkreturn="true" passthru="true" />
 	</target>
 
+	<!-- Initilize git submodules -->
 	<target name="_git_init" hidden="true">
-		<exec command="git submodule update --init --recursive" checkreturn="true" passthru="true" />
+		<exec command="git submodule update --init --recursive" checkreturn="true" />
 	</target>
 
-	<target name="_deploy" hidden="true">
+	<!-- Deploy-->
+	<target name="_deploy" hidden="true" depends="_get_pagoda_settings,_get_branch">
 			<exec command="git log -1 --pretty=%B" returnProperty="git.lastcommitmsg" />
 			<if>
 				<not>
 					<contains substring="[ci skip-deploy]" string="${git.lastcommitmsg}" casesensitive="false" />
 				</not>
 				<then>
-					<phingcall target="_get_branch" />
-					<phingcall target="_get_pagoda_settings" />
-
 					<phingcall target="_install_pagoda" />
 					<phingcall target="_set_pagoda_key" />
 					<phingcall target="_pagoda_deploy" />
@@ -67,13 +71,68 @@
  			</if>
 	</target>
 
-	<target name="temp">
-		<phingcall target="_get_pagoda_settings" />
-		<echo message="User: ${env.PAGODABOX_USERNAME}" />
+	<!-- Deployment task -->
+	<target name="deploy" description="Deploy to Pagodabox" depends="verify-pagoda,_get_pagoda_settings,_install_pagoda">
+		<phingcall target="_pagoda_deploy" />
 	</target>
 
-	<!-- Generate SSH key and push to PagodaBox -->
-	<target name="_set_pagoda_key" hidden="true">
+	<!-- Deployment task for CI environment
+		Steps:
+		1) Check properties to see if we should deploy
+		1) Get pagodabox settings
+		2) Get git branch
+		3) Install Pagodabox gem
+		4) Set pagodabox SSH key
+		5) Deploy
+	-->
+	<target name="ci-deploy" description="CI Automated Deployment" depends="verify-pagoda,_get_pagoda_settings,_get_branch">
+		<exec command="git log -1 --pretty=%B" outputProperty="git.lastcommitmsg" />
+		
+		<!-- Check that we're in a CI state -->
+		<if>
+			<not>
+				<equals arg1="${env.CI}" arg2="true" casesensitive="false" />
+			</not>
+			<then>
+				<fail message="Not running under a continuous integration service.  Skipping automated deployment." />
+			</then>
+		</if>
+
+
+		<!-- Check Travis Status -->
+		<if>
+			<equals arg1="${env.TRAVIS_TEST_RESULT}" arg2="1" />
+			<then>
+				<fail message="Travis build is failing.  Skipping deployment." />
+			</then>
+		</if>
+
+		<!-- Check commit message, and commit type, and Pagodabox App-->
+		<if>
+			<and>
+				<not>
+					<contains substring="[ci skip-deploy]" string="${git.lastcommitmsg}" casesensitive="false" />
+				</not>
+				<not>
+					<equals arg1="${env.TRAVIS_PULL_REQUEST}" arg2="true" casesensitive="false" />
+				</not>
+				<not>
+					<equals arg1="${env.PAGODABOX_APP}" arg2="NULL" casesensitive="false" />
+				</not>
+			</and>
+			<then>
+				<phingcall target="_install_pagoda" />
+				<phingcall target="_set_pagoda_key" />
+				<phingcall target="_pagoda_deploy" />
+			</then>
+			<else>
+				<echo message="Automatic deployment skipped due to either: git branch, git commit type, or skip flag in git commit message." />
+			</else>
+		</if>
+	</target>
+
+	<!-- Generate SSH key and push it to PagodaBox -->
+	<target name="_set_pagoda_key" hidden="true" depends="_get_pagoda_settings,_install_pagoda">
 		<if>
 			<not>
 				<available file="~/.ssh/pagoda" />
@@ -91,15 +150,47 @@
 		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} key:push --file=~/.ssh/pagoda.pub" checkreturn="true" />
 	</target>
 
-	<target name="_pagoda_deploy" hidden="true">
-		<exec command="git remote add pagoda git@git.pagodabox.com:${env.PAGODABOX_APP}.git" checkreturn="true" />
-		<exec command="git push --force pagoda ${git.branch}" checkreturn="true" />
+	<!-- Push changes to Pagodabox-->
+	<target name="_pagoda_deploy" hidden="true" depends="_get_pagoda_settings,_get_branch,_install_pagoda">
+		<!-- Check if remote branch exists.  If not, add it -->
+		<exec command="git branch -r | grep pagoda/" returnProperty="git.remote_exists" />
+		<if>
+			<not>
+				<equals arg1="${git.remote_exists}" arg2="0" />
+			</not>
+			<then>
+				<exec command="git remote add pagoda git@git.pagodabox.com:${env.PAGODABOX_APP}.git" checkreturn="true" />
+			</then>
+		</if>
+		<exec command="git push --force pagoda ${git.branch}" checkreturn="true" passthru="true" />
 		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} --app=${env.PAGODABOX_APP} deploy" checkreturn="true" passthru="true" />
 	</target>
 
 	<!-- Get Pagodabox settings -->
 	<target name="_get_pagoda_settings" hidden="true">
-		
+		<if>
+			<isset property="env.TRAVIS_BRANCH" />
+			<then>
+				<if>
+					<equals arg1="${env.TRAVIS_BRANCH}" arg2="release" />
+					<then>
+						<property name="env.PAGODABOX_APP" value="${env.PAGODABOX_PROD}" />
+					</then>
+
+					<elseif>
+						<equals arg1="${env.TRAVIS_BRANCH}" arg2="staging" />
+						<then>
+							<property name="env.PAGODABOX_APP" value="${env.PAGODABOX_STAGING}" />
+						</then>
+					</elseif>
+
+					<else>
+						<property name="env.PAGODABOX_APP" value="NULL" />
+					</else>
+				</if>
+			</then>
+		</if>
+
 		<propertyprompt propertyName="env.PAGODABOX_USERNAME" useExistingValue="true" promptText="Pagodabox Username" />
 
 		<propertyprompt propertyName="env.PAGODABOX_PASSWORD" useExistingValue="true" promptText="Pagodabox Password" />
@@ -107,6 +198,7 @@
 		<propertyprompt propertyName="env.PAGODABOX_APP" useExistingValue="true" promptText="Pagodabox Application" />
 	</target>
 
+	<!-- Determine git branch -->
 	<target name="_get_branch" hidden="true">
 		<if>
 			<not>
@@ -127,6 +219,7 @@
 		</if>
 	</target>
 
+	<!-- Install Pagodabox ruby gem -->
 	<target name="_install_pagoda" hidden="true">
 		<exec command="which pagoda" returnProperty="which.pagoda" />
 		<if>
@@ -134,7 +227,72 @@
 				<equals arg1="${which.pagoda}" arg2="0" />
 			</not>
 			<then>
-				<exec command="sudo gem install pagoda" checkreturn="true" passthru="true" />
+				<exec command="sudo gem install pagoda" checkreturn="true" />
+			</then>
+		</if>
+	</target>
+
+	<!-- Verify environment works for Kohana.  This is similar to the default install.php -->
+	<target name="verify-kohana" description="Verify environment works for Kohana">
+		<echo message="Required Components:" />
+		<php expression="version_compare(PHP_VERSION, '5.3.3', '>=')" returnProperty="kohana.php"/>
+		<php expression="function_exists('spl_autoload_register')" returnProperty="kohana.spl"/>
+		<php expression="class_exists('ReflectionClass')" returnProperty="kohana.reflection"/>
+		<php expression="function_exists('filter_list')" returnProperty="kohana.filterlist"/>
+		<php expression="extension_loaded('iconv')" returnProperty="kohana.iconv"/>
+		<php expression="extension_loaded('mbstring')" returnProperty="kohana.mbstring"/>
+		<php expression="(ini_get('mbstring.func_overload') AND MB_OVERLOAD_STRING)" returnProperty="kohana.mbstringoverload"/>
+		<php expression="function_exists('ctype_digit')" returnProperty="kohana.ctype"/>
+		<echo message="==================================" />
+		<echo message="Recommended Components:" />
+		<php expression="extension_loaded('http')" returnProperty="kohana.http"/>
+		<php expression="extension_loaded('curl')" returnProperty="kohana.curl"/>
+		<php expression="extension_loaded('mcrypt')" returnProperty="kohana.mcrypt"/>
+		<php expression="function_exists('gd_info')" returnProperty="kohana.gdinfo"/>
+		<php expression="function_exists('mysql_connect')" returnProperty="kohana.mysql"/>
+		<php expression="class_exists('PDO')" returnProperty="kohana.pdo"/>
+
+
+		<if>
+			<or>
+				<isfalse value="${kohana.php}" />
+				<isfalse value="${kohana.spl}" />
+				<isfalse value="${kohana.reflection}" />
+				<isfalse value="${kohana.filterlist}" />
+				<isfalse value="${kohana.iconv}" />
+				<isfalse value="${kohana.mbstring}" />
+				<istrue value="${kohana.mbstringoverload}" />
+				<isfalse value="${kohana.ctype}" />
+			</or>
+			<then>
+				<fail message="One or more Kohana requirements failed." />
+			</then>
+		</if>
+
+		<if>
+			<or>
+				<isfalse value="${kohana.http}" />
+				<isfalse value="${kohana.curl}" />
+				<isfalse value="${kohana.mcrypt}" />
+				<isfalse value="${kohana.gdinfo}" />
+				<isfalse value="${kohana.mysql}" />
+				<isfalse value="${kohana.pdo}" />
+			</or>
+			<then>
+				<echo message="==================================" />
+				<echo message="One or more recommended components is not available on this system." />
+			</then>
+		</if>
+	</target>
+
+	<!-- Verify environment works for Pagodabox -->
+	<target name="verify-pagoda" description="Verify environment works for Pagodabox">
+		<if>
+			<not>
+				<available file="./Boxfile"/>
+			</not>
+			<then>
+				<fail message="Missing Pagodabox Boxfile" />
 			</then>
 		</if>
 	</target>
@@ -142,18 +300,21 @@
 	<!-- PHP CodeSniffer -->
 	<target name="phpcs">
 		<propertyprompt propertyName="phpcs.directory" useExistingValue="true" defaultValue="./application/" promptText="Directory to scan" />
-		<exec command="./vendor/bin/phpcs --standard=./vendor/kohana-coding-standards/PHP/CodeSniffer/Standards/Kohana --extensions=php --ignore=*/vendor/*,*/tests/* ${phpcs.directory}" checkreturn="false" passthru="true" />
+		<exec command="./vendor/bin/phpcs --standard=./vendor/awbn/kohana_coding_standards/PHP/CodeSniffer/Standards/Kohana --extensions=php --ignore=*/vendor/*,*/tests/* ${phpcs.directory}" checkreturn="false" passthru="true" />
 	</target>
 
-	<target name="dev-setup">
+	<!-- Setup environment for development -->
+	<target name="dev-setup" description="Setup environment for development work">
 		<phingcall target="_install_composer" />
 		<phingcall target="_install_dependencies" />
 		<phingcall target="_git_init" />
-		<exec command="sudo chmod 777 ./application/cache" checkreturn="true" passthru="true" />
-		<exec command="sudo chmod 777 ./application/logs" checkreturn="true" passthru="true" />
+		<exec command="sudo chmod 777 ./application/cache" checkreturn="true" />
+		<exec command="sudo chmod 777 ./application/logs" checkreturn="true" />
+		<phingcall target="verify-kohana" />
 	</target>
 
-	<target name="ci-setup">
+	<!-- Setup environment for Travis CI -->
+	<target name="ci-setup" description="Setup environment for TravisCI run">
 		<phingcall target="_install_composer" />
         <phingcall target="_install_dependencies" />
 		<phingcall target="_git_init" />

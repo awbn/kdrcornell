@@ -21,44 +21,18 @@ env:
     - secure: "cT3JGi1zzGAp6LfUGygAblfm8A3PEy6QAwsuxOclDJcFQtcZnYX4sl/mO6ug\nhddru1+Cv5GGJL506j1uNbVlRcX3CY5RdZVOjG9QfDr+h7HV8DgaUHUzO68O\n3LP3HDsQsgDOrwUOqvcoNbMwdBmQsJ6TeUd2EmYCBWhbppXo/PQ="
     # PAGODABOX_PASSWORD
     - secure: "UshPi5d9ozn/1ic9iHftQHJl5z6NOKCHGwcwdR3v7cKZTugFXChE0EhKqARh\nEMzE4ogc/sz2WeQFSrkQLL7W7JpAQ3yahW7nO8PetzPhSAnmvt74/h/3SQlI\nljnC7iDyqF48kTquj+M2pA21Mteevqpe+ZFANCM/gTelMYWT+T8="
-    # PAGODABOX_APP
+    # PAGODABOX_APP Options
     - PAGODABOX_STAGING=staging-kdrcornell-com
     - PAGODABOX_PROD=kdrcornell-com
-    # Text output colors
-    - GREEN=$(tput setaf 2)
-    - RED=$(tput setaf 1)
-    - NORMAL=$(tput sgr0)
-
-before_install:
-  - git submodule update --init --recursive
-  - if [ "$TRAVIS_BRANCH" == "release" ]; then export PAGODABOX_APP=$PAGODABOX_PROD; elif [ "$TRAVIS_BRANCH" == "staging" ]; then export PAGODABOX_APP=$PAGODABOX_STAGING; else export PAGODABOX_APP="NULL"; fi
 
 before_script:
-  - "pear channel-discover pear.phing.info"
-  - "pear install phing/phing"
-  - "phpenv rehash"
-  - "composer install"
+  - ./scripts/prereqs.sh
+  - phing ci-setup
 
 script:
   ### TESTS ###
-  # Verify Pagodabox Boxfile exists
-  - if [ ! -f "./Boxfile" ]; then echo "${RED}Pagodabox Boxfile Missing."; export TRAVIS_TEST_RESULT=1; fi
-  # Run Unittests
+  - phing verify-pagoda
+  - phing verify-kohana
   - phing test
   ### DEPLOYMENT ###
-  # Deploy to Pagodabox
-  - export COMMIT_MSG=$(git log -1 --pretty=%B)
-  - if [ "$TRAVIS_TEST_RESULT" -eq "0" ] && [ "$TRAVIS_PULL_REQUEST" != "true" ] && [ "$PAGODABOX_APP" != "NULL" ] && [[ "$COMMIT_MSG" != *"[ci skip-deploy]"* ]]; then export DEPLOY=1; else export DEPLOY=0; fi
-  - if [ "$DEPLOY" -eq "1" ]; then echo "${GREEN}Deploying branch '$TRAVIS_BRANCH' to '$PAGODABOX_APP'"; else echo "${RED} Skipping automatic deployment due to branch and/or validation failure"; fi
-  - ssh-keygen -N "" -f ~/.ssh/pagoda
-  - gem install pagoda
-  - if [ "$DEPLOY" -eq "1" ]; then pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD key:push --file=$HOME/.ssh/pagoda.pub; fi
-  - echo "Host git.pagodabox.com" >> ~/.ssh/config
-  - echo "   StrictHostKeyChecking no" >> ~/.ssh/config
-  - echo "   CheckHostIP yes" >> ~/.ssh/config
-  - echo "   UserKnownHostsFile=/dev/null" >> ~/.ssh/config
-  - echo "   IdentityFile=${HOME}/.ssh/pagoda" >> ~/.ssh/config
-  - echo "   IdentitiesOnly yes" >> ~/.ssh/config
-  - git remote add pagoda git@git.pagodabox.com:$PAGODABOX_APP.git
-  - if [ "$DEPLOY" -eq "1" ]; then git push --force pagoda $TRAVIS_BRANCH; fi
-  - if [ "$DEPLOY" -eq "1" ]; then pagoda --username=$PAGODABOX_USERNAME --password=$PAGODABOX_PASSWORD --app=$PAGODABOX_APP deploy; fi
+  - phing ci-deploy
