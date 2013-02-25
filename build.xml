@@ -37,7 +37,7 @@
 				<equals arg1="${which.composer}" arg2="0" />
 			</not>
 			<then>
-				<exec command="sudo curl -sS https://getcomposer.org/installer | php" checkreturn="true" />
+				<exec command="curl -sS https://getcomposer.org/installer | php" checkreturn="true" />
 				<exec command="sudo mv composer.phar /usr/local/bin/composer" checkreturn="true" />
 			</then>
 		</if>	
@@ -229,14 +229,17 @@
 
 	<!-- Install Pagodabox ruby gem -->
 	<target name="_install_pagoda" hidden="true">
-		<exec command="which pagoda" returnProperty="which.pagoda" />
+		<exec command="which pagoda" returnProperty="which.pagoda" outputProperty="which.pagoda.loc" />
 		<if>
 			<not>
 				<equals arg1="${which.pagoda}" arg2="0" />
 			</not>
 			<then>
-				<exec command="sudo gem install pagoda" checkreturn="true" />
+				<exec command="gem install pagoda" checkreturn="true" passthru="true" />
 			</then>
+			<else>
+				<echo message="Found Pagoda gem at ${which.pagoda.loc}" />
+			</else>
 		</if>
 	</target>
 
@@ -320,8 +323,8 @@
 		<phingcall target="_install_composer" />
 		<phingcall target="_install_dependencies" />
 		<phingcall target="_git_init" />
-		<exec command="sudo chmod 777 ./application/cache" checkreturn="true" />
-		<exec command="sudo chmod 777 ./application/logs" checkreturn="true" />
+		<exec command="chmod 777 ./application/cache" checkreturn="true" />
+		<exec command="chmod 777 ./application/logs" checkreturn="true" />
 		<phingcall target="verify-kohana" />
 	</target>
 
