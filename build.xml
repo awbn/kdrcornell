@@ -22,7 +22,7 @@
 		<echo message="phing ci-deploy			Automated deployment to Pagodabox" />
 		<echo message="phing verify-kohana		Verify environment works for Kohana" />
 		<echo message="phing verify-pagoda		Verify environment works for Pagodabox" />
-
+		<echo message="phing verify-travis		Verify environment works for Travis CI" />
 	</target>
 
 	<!-- Run unit tests -->
@@ -246,7 +246,7 @@
 		</if>
 	</target>
 
-	<!-- Verify environment works for Kohana.  This is similar to the default install.php -->
+	<!-- Verify environment works for Kohana.  This is similar to the default install.php.  Currently doesn't check SYSPATH, APPPATH, etc -->
 	<target name="verify-kohana" description="Verify environment works for Kohana">
 		<echo message="Required Components:" />
 		<php expression="version_compare(PHP_VERSION, '5.3.3', '>=')" returnProperty="kohana.php"/>
@@ -314,6 +314,34 @@
 			</then>
 		</if>
 	</target>
+
+	<!-- Verify environment works for Travis -->
+	<target name="verify-travis" description="Verify .travis.yml file">
+		<!-- Verify .travis.yml exists -->
+		<if>
+			<not>
+				<available file="./.travis.yml"/>
+			</not>
+			<then>
+				<fail message="Missing .travis.yml" />
+			</then>
+		</if>
+		
+		<!-- Install travis-lint, if not available -->
+		<exec command="which travis-lint" returnProperty="which.travis" />
+		<if>
+			<not>
+				<equals arg1="${which.travis}" arg2="0" />
+			</not>
+			<then>
+				<exec command="gem install travis-lint" checkreturn="true" passthru="true" />
+			</then>
+		</if>
+
+		<!-- Run travis-lint -->
+		<exec command="travis-lint" checkreturn="true" passthru="true" />
+	</target>
+
 
 	<!-- PHP CodeSniffer -->
 	<target name="phpcs">

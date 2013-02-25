@@ -18,10 +18,10 @@ notifications:
 env:
   global:
     # PAGODABOX_USERNAME
-    - secure: "cT3JGi1zzGAp6LfUGygAblfm8A3PEy6QAwsuxOclDJcFQtcZnYX4sl/mO6ug\nhddru1+Cv5GGJL506j1uNbVlRcX3CY5RdZVOjG9QfDr+h7HV8DgaUHUzO68O\n3LP3HDsQsgDOrwUOqvcoNbMwdBmQsJ6TeUd2EmYCBWhbppXo/PQ="
+    - secure: "SF5G0yloZyVRzzcpCy3ouWkaBY+2FdfrZwK5QL849SUON4eKxvKlZuruF97C\n04t3UNh5oFo56mR9RuwfFaZ8BDapgKoFspb3fGD4xnjb2Odxud3tYsM24uvl\nLOrq28pZS/caN/GDNyzIckr4qjRMyXn7ydFBMXbtY//qHJxg0Lk="
     # PAGODABOX_PASSWORD
-    - secure: "UshPi5d9ozn/1ic9iHftQHJl5z6NOKCHGwcwdR3v7cKZTugFXChE0EhKqARh\nEMzE4ogc/sz2WeQFSrkQLL7W7JpAQ3yahW7nO8PetzPhSAnmvt74/h/3SQlI\nljnC7iDyqF48kTquj+M2pA21Mteevqpe+ZFANCM/gTelMYWT+T8="
-    # PAGODABOX_APP Options
+    - secure: "guIahVAckUv7VlmjBY8EpG1T+kQS8Wj8b0uS1PKrld3SD25DsRWdkAifzJs/\nSHVUh7LcqRnnZjR1nfiXKZHj/abKayYjpGv+3FM9w4xSz5QNvHihcifQwc6x\nL1BhBqeWTBbdnxiHUyXRwTh/rn/w4R1yI8+KkTvmh55UJ8ehgGU="
+    # PAGODABOX_APP Targets
     - PAGODABOX_STAGING=staging-kdrcornell-com
     - PAGODABOX_PROD=kdrcornell-com
 
