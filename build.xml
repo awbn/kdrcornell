@@ -121,33 +121,41 @@
 				</not>
 			</and>
 			<then>
+				<echo message="Deploying branch '${git.branch}' to '${env.PAGODABOX_APP}'" />
 				<phingcall target="_install_pagoda" />
 				<phingcall target="_set_pagoda_key" />
 				<phingcall target="_pagoda_deploy" />
 			</then>
 			<else>
-				<echo message="Automatic deployment skipped due to either: git branch, git commit type, or skip flag in git commit message." />
+				<echo message="Automatic deployment skipped due to either: current git branch, git commit type, or skip flag in git commit message." />
 			</else>
 		</if>
 	</target>
 
 	<!-- Generate SSH key and push it to PagodaBox -->
 	<target name="_set_pagoda_key" hidden="true" depends="_get_pagoda_settings,_install_pagoda">
+		<property name="ssh.keyfile" value="~/.ssh/pagoda" />
+		<exec command="cat ${ssh.keyfile}.pub > /dev/null" returnProperty="ssh.keyexists" />
 		<if>
 			<not>
-				<available file="~/.ssh/pagoda" />
+				<!-- <available file='' /> Doesn't work here on osx -->
+				<equals arg1="${ssh.keyexists}" arg2="0" />
 			</not>
 			<then>
-				<exec command="ssh-keygen -N '' -f ~/.ssh/pagoda" checkreturn="true" />
+				<echo message="${ssh.keyfile}.pub not found.  Generating new key." />
+				<exec command="ssh-keygen -N '' -f ${ssh.keyfile}" checkreturn="true" />
 				<exec command="echo 'Host git.pagodabox.com' >> ~/.ssh/config" checkreturn="true" />
-					<exec command="echo '   StrictHostKeyChecking no' >> ~/.ssh/config" checkreturn="true" />
-					<exec command="echo '   CheckHostIP yes' >> ~/.ssh/config" checkreturn="true" />
-					<exec command="echo '   UserKnownHostsFile=/dev/null' >> ~/.ssh/config" checkreturn="true" />
-					<exec command="echo '   IdentityFile=~/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true"/>
-					<exec command="echo '   IdentitiesOnly yes' >> ~/.ssh/config" checkreturn="true" />
+				<exec command="echo '   StrictHostKeyChecking no' >> ~/.ssh/config" checkreturn="true" />
+				<exec command="echo '   CheckHostIP yes' >> ~/.ssh/config" checkreturn="true" />
+				<exec command="echo '   UserKnownHostsFile=/dev/null' >> ~/.ssh/config" checkreturn="true" />
+				<exec command="echo '   IdentityFile=~/.ssh/pagoda' >> ~/.ssh/config" checkreturn="true"/>
+				<exec command="echo '   IdentitiesOnly yes' >> ~/.ssh/config" checkreturn="true" />
 			</then>
+			<else>
+				<echo message="Pushing existing ${ssh.keyfile} to Pagoda" />
+			</else>
 		</if>
-		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} key:push --file=~/.ssh/pagoda.pub" checkreturn="true" />
+		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} key:push --file=${ssh.keyfile}.pub" passthru="true" checkreturn="true" />
 	</target>
 
 	<!-- Push changes to Pagodabox-->
