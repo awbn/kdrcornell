@@ -46,7 +46,7 @@
 
 	<!-- Install project dependencies -->
 	<target name="_install_dependencies" hidden="true">
-		<exec command="composer install" checkreturn="true" passthru="true" />
+		<exec command="composer install" checkreturn="true" />
 	</target>
 
 	<!-- Initilize git submodules -->
@@ -99,7 +99,6 @@
 			</then>
 		</if>
 
-
 		<!-- Check Travis Status -->
 		<if>
 			<equals arg1="${env.TRAVIS_TEST_RESULT}" arg2="1" />
@@ -128,6 +127,7 @@
 				<phingcall target="_pagoda_deploy" />
 			</then>
 			<else>
+				<echo message="${env.PAGODABOX_APP} - {env.TRAVIS_PULL_REQUEST}" />
 				<echo message="Automatic deployment skipped due to either: current git branch, git commit type, or skip flag in git commit message." />
 			</else>
 		</if>
@@ -177,24 +177,17 @@
 		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} --app=${env.PAGODABOX_APP} deploy" checkreturn="true" passthru="true" />
 	</target>
 
-	<target name="temp">
-		<property name="dev.value" value="foo" />
-		<property name="test" value="dev" />
-		<property name="output" value="${${test}.value}" />
-		<echo message="${output}" />
-	</target>
-
 	<!-- Get Pagodabox settings -->
 	<target name="_get_pagoda_settings" hidden="true">
 		<!-- Get app name from branch, if it exists -->
 		<if>
 			<isset property="env.TRAVIS_BRANCH" />
 			<then>
-				<exec command="printenv | grep PAGODABOX_${env.TRAVIS_BRANCH}" returnProperty="branch.map" />
+				<exec command="echo ${env.TRAVIS_BRANCH} | tr '[:lower:]' '[:upper:]'" outputProperty="travis.branch" />
+				<exec command="printenv | grep PAGODABOX_${travis.branch}" returnProperty="branch.map" />
 				<if>
 					<equals arg1="${branch.map}" arg2="0" />
 					<then>
-						<exec command="echo ${env.TRAVIS_BRANCH} | tr '[:lower:]' '[:upper:]'" outputProperty="travis.branch" />
 						<property name="env.PAGODABOX_APP" value="${env.PAGODABOX_${travis.branch}}" />
 					</then>
 					<else>
