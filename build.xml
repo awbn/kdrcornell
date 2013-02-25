@@ -8,7 +8,8 @@
 		<echo message="General Tasks"/>
 		<echo message="==============="/>
 		<echo message="phing tests 				Run unit tests"/>
-		<echo message="phing phpcs 				Run phpcs"/>
+		<echo message="phing phpcs 				Run PHP CodeSniffer"/>
+		<echo message="phing phpmd 				Run PHP Mess Detector"/>
 		<echo message=""/>
 		<echo message="Developer Tasks"/>
 		<echo message="========================"/>
@@ -155,7 +156,9 @@
 				<echo message="Pushing existing ${ssh.keyfile} to Pagoda" />
 			</else>
 		</if>
-		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} key:push --file=${ssh.keyfile}.pub" passthru="true" checkreturn="true" />
+		<!-- Temporarily change to home directory to work around pagoda -f bug -->
+		<exec command="echo '${ssh.keyfile}' | cut -c3-" outputProperty="ssh.relkey" />
+		<exec command="cd ~/; pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} key:push --file=${ssh.relkey}.pub" passthru="true" checkreturn="true" />
 	</target>
 
 	<!-- Push changes to Pagodabox-->
@@ -316,6 +319,13 @@
 	<target name="phpcs">
 		<propertyprompt propertyName="phpcs.directory" useExistingValue="true" defaultValue="./application/" promptText="Directory to scan" />
 		<exec command="./vendor/bin/phpcs --standard=./vendor/awbn/kohana_coding_standards/PHP/CodeSniffer/Standards/Kohana --extensions=php --ignore=*/vendor/*,*/tests/* ${phpcs.directory}" checkreturn="false" passthru="true" />
+	</target>
+
+	<!-- PHP Mess Detector -->
+	<target name="phpmd">
+		<propertyprompt propertyName="phpmd.directory" useExistingValue="true" defaultValue="./application/" promptText="Directory to scan" />
+		<propertyprompt propertyName="phpmd.rules" useExistingValue="true" defaultValue="codesize,unusedcode" promptText="PHPMD rules" />
+		<exec command="./vendor/bin/phpmd '${phpmd.directory}' text ${phpmd.rules} --exclude=**/vendor/**"  passthru="true" />
 	</target>
 
 	<!-- Setup environment for development -->
