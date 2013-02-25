@@ -4,7 +4,7 @@
 
 	<property name="basedir" value="${project.basedir}"/>
 
-	<target name="help">
+	<target name="help" description="Show Phing Tasks">
 		<echo message="General Tasks"/>
 		<echo message="==============="/>
 		<echo message="phing tests 				Run unit tests"/>
@@ -177,24 +177,26 @@
 		<exec command="pagoda --username=${env.PAGODABOX_USERNAME} --password=${env.PAGODABOX_PASSWORD} --app=${env.PAGODABOX_APP} deploy" checkreturn="true" passthru="true" />
 	</target>
 
+	<target name="temp">
+		<property name="dev.value" value="foo" />
+		<property name="test" value="dev" />
+		<property name="output" value="${${test}.value}" />
+		<echo message="${output}" />
+	</target>
+
 	<!-- Get Pagodabox settings -->
 	<target name="_get_pagoda_settings" hidden="true">
+		<!-- Get app name from branch, if it exists -->
 		<if>
 			<isset property="env.TRAVIS_BRANCH" />
 			<then>
+				<exec command="printenv | grep PAGODABOX_${env.TRAVIS_BRANCH}" returnProperty="branch.map" />
 				<if>
-					<equals arg1="${env.TRAVIS_BRANCH}" arg2="release" />
+					<equals arg1="${branch.map}" arg2="0" />
 					<then>
-						<property name="env.PAGODABOX_APP" value="${env.PAGODABOX_PROD}" />
+						<exec command="echo ${env.TRAVIS_BRANCH} | tr '[:lower:]' '[:upper:]'" outputProperty="travis.branch" />
+						<property name="env.PAGODABOX_APP" value="${env.PAGODABOX_${travis.branch}}" />
 					</then>
-
-					<elseif>
-						<equals arg1="${env.TRAVIS_BRANCH}" arg2="staging" />
-						<then>
-							<property name="env.PAGODABOX_APP" value="${env.PAGODABOX_STAGING}" />
-						</then>
-					</elseif>
-
 					<else>
 						<property name="env.PAGODABOX_APP" value="NULL" />
 					</else>
@@ -344,13 +346,13 @@
 
 
 	<!-- PHP CodeSniffer -->
-	<target name="phpcs">
+	<target name="phpcs" description="Run PHP CodeSniffer">
 		<propertyprompt propertyName="phpcs.directory" useExistingValue="true" defaultValue="./application/" promptText="Directory to scan" />
 		<exec command="./vendor/bin/phpcs --standard=./vendor/awbn/kohana_coding_standards/PHP/CodeSniffer/Standards/Kohana --extensions=php --ignore=*/vendor/*,*/tests/* ${phpcs.directory}" checkreturn="false" passthru="true" />
 	</target>
 
 	<!-- PHP Mess Detector -->
-	<target name="phpmd">
+	<target name="phpmd" description="Run PHP Mess Detector">
 		<propertyprompt propertyName="phpmd.directory" useExistingValue="true" defaultValue="./application/" promptText="Directory to scan" />
 		<propertyprompt propertyName="phpmd.rules" useExistingValue="true" defaultValue="codesize,unusedcode" promptText="PHPMD rules" />
 		<exec command="./vendor/bin/phpmd '${phpmd.directory}' text ${phpmd.rules} --exclude=**/vendor/**"  passthru="true" />
