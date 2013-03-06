@@ -6,7 +6,7 @@
 
 	<target name="help" description="Show Phing Tasks">
 		<echo message="General Tasks"/>
-		<echo message="==============="/>
+		<echo message="========================"/>
 		<echo message="phing tests 				Run unit tests"/>
 		<echo message="phing phpcs 				Run PHP CodeSniffer"/>
 		<echo message="phing phpmd 				Run PHP Mess Detector"/>
@@ -23,6 +23,7 @@
 		<echo message="phing verify-kohana		Verify environment works for Kohana" />
 		<echo message="phing verify-pagoda		Verify environment works for Pagodabox" />
 		<echo message="phing verify-travis		Verify environment works for Travis CI" />
+		<echo message="phing travis-encrypt		Encrypt a string for use in .travis.yml" />
 	</target>
 
 	<!-- Run unit tests -->
@@ -127,7 +128,6 @@
 				<phingcall target="_pagoda_deploy" />
 			</then>
 			<else>
-				<echo message="${env.PAGODABOX_APP} - {env.TRAVIS_PULL_REQUEST}" />
 				<echo message="Automatic deployment skipped due to either: current git branch, git commit type, or skip flag in git commit message." />
 			</else>
 		</if>
@@ -335,6 +335,31 @@
 
 		<!-- Run travis-lint -->
 		<exec command="travis-lint" checkreturn="true" passthru="true" />
+	</target>
+
+	<!-- Get git remote branch -->
+	<target name="_get_git_remote" hidden="true">
+		<exec command="git remote show origin | grep 'Fetch URL' | cut -c29- | cut -d'.' -f1" outputProperty="git.repo" />
+	</target>
+
+	<!-- Use travis encrypt -->
+	<target name="travis-encrypt" description="Encrypt a key for use in .travis.yml" depends="_get_git_remote">
+		<!-- Install travis, if not available -->
+		<exec command="which travis" returnProperty="which.travis" />
+		<if>
+			<not>
+				<equals arg1="${which.travis}" arg2="0" />
+			</not>
+			<then>
+				<exec command="gem install travis" checkreturn="true" passthru="true" />
+			</then>
+		</if>
+
+		<propertyprompt propertyName="travis.repo" defaultValue="${git.repo}" promptText="Github repository linked to travis" />
+		<propertyprompt propertyName="travis.value" promptText="String to encrypt" />
+
+		<!-- Run travis encrypt -->
+		<exec command="travis encrypt -r ${travis.repo} '${travis.value}'" checkreturn="true" passthru="true" />
 	</target>
 
 

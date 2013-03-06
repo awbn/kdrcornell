@@ -1,8 +1,8 @@
 application/config/mamp/*
-application/config/pagodabox/*
 Icon?
 .DS_Store
 .svn
+*.sublime*
 code_coverage
 *~
 *.swp
