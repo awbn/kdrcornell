@@ -4,5 +4,5 @@
  * Salt should be changed for each environment
  **/
 return array(
-	"salt"  =>	$_ENV["COOKIE_SALT"]
+	"salt"  =>	$_SERVER["COOKIE_SALT"]
 );
