@@ -7,7 +7,8 @@
 	<target name="help" description="Show Phing Tasks">
 		<echo message="General Tasks"/>
 		<echo message="========================"/>
-		<echo message="phing tests 				Run unit tests"/>
+		<echo message="phing test 				Run unit tests"/>
+		<echo message="phing prodchecks			Run production checks with CasperJS"/>
 		<echo message="phing phpcs 				Run PHP CodeSniffer"/>
 		<echo message="phing phpmd 				Run PHP Mess Detector"/>
 		<echo message=""/>
@@ -29,6 +30,12 @@
 	<!-- Run unit tests -->
 	<target name="test" description="Run unit tests with PHPUnit">
 		<exec command="./vendor/bin/phpunit -d memory_limit=512M --colors --bootstrap=modules/unittest/bootstrap_all_modules.php modules/unittest/tests.php" checkreturn="true" passthru="true"/>
+	</target>
+
+	<!-- Run production checks -->
+	<target name="prodchecks" description="Run production checks with CasperJS" depends="_install_casperjs">
+		<propertyprompt propertyName="prodchecks.url" useExistingValue="true" defaultValue="http://localhost/" promptText="URL to run against" />
+		<exec command="casperjs test --url=${prodchecks.url} ./prodchecks/" checkreturn="true" passthru="true" />
 	</target>
 
 	<!-- Install composer -->
@@ -68,9 +75,9 @@
 					<phingcall target="_pagoda_deploy" />
 				</then>
 				<else>
-   					<echo message="Git commit message contained deployment skip flag.  Deployment skipped." />
- 				</else>
- 			</if>
+					<echo message="Git commit message contained deployment skip flag.  Deployment skipped." />
+				</else>
+			</if>
 	</target>
 
 	<!-- Deployment task -->
@@ -108,7 +115,7 @@
 			</then>
 		</if>
 
-		<!-- Check commit message, and commit type, and Pagodabox App-->
+		<!-- Check commit message, commit type, and Pagodabox App-->
 		<if>
 			<and>
 				<not>
@@ -238,6 +245,31 @@
 			<else>
 				<echo message="Found Pagoda gem at ${which.pagoda.loc}" />
 			</else>
+		</if>
+	</target>
+
+	<!-- Install CasperJS and PhantomJS for production checks -->
+	<target name="_install_casperjs" hidden="true">
+		<!-- Check Phantom -->
+		<exec command="which phantomjs" returnProperty="which.phantomjs" />
+		<if>
+			<not>
+				<equals arg1="${which.phantomjs}" arg2="0" />
+			</not>
+			<then>
+				<fail message="Production tests require that PhantomJS be installed.  See download and installation instructions here: http://phantomjs.org/download.html" />
+			</then>
+		</if>
+
+		<!-- Check Casper -->
+		<exec command="which casperjs" returnProperty="which.casperjs" outputProperty="which.casperjs.loc" />
+		<if>
+			<not>
+				<equals arg1="${which.casperjs}" arg2="0" />
+			</not>
+			<then>
+				<exec command="gem install casperjs" checkreturn="true" passthru="true" />
+			</then>
 		</if>
 	</target>
 
@@ -389,7 +421,7 @@
 	<!-- Setup environment for Travis CI -->
 	<target name="ci-setup" description="Setup environment for TravisCI run">
 		<phingcall target="_install_composer" />
-        <phingcall target="_install_dependencies" />
+		<phingcall target="_install_dependencies" />
 		<phingcall target="_git_init" />
 	</target>
 </project>

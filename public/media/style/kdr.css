@@ -1,0 +1,143 @@
+#brotherhood {
+	text-align:left;
+}
+
+.brother-gallery{
+	text-align: center;
+	max-width:200px;
+	margin:0 5px 5px 0;
+	border: 1px solid #aaa;
+	position:relative;
+	display:inline-block;
+}
+
+.brother-gallery img{
+	max-width:200px;
+	width:200px;
+	height:150px;
+}
+
+.brother-gallery div{
+	position:absolute;
+	bottom:0;
+	left:0;
+	width:194px;
+	background-color: #1ba1e2; /* fallback color */
+  	background: rgba(27, 161, 226, 0.7);
+  	padding: 3px;
+}
+
+.brother-gallery div h4{
+	padding:0px;
+	color: #fff;
+	font-size: 1em;
+	line-height: 1em;
+}
+
+.brother-gallery div{
+	min-height: 1.5em;
+}
+
+.brother-gallery div p{
+	font-size: 0.75em;
+	color:#fff;
+	line-height: 1em;
+}
+
+.filter-no-results{
+	display:none;
+}
+
+.brother-gallery a:hover div{
+	background: rgba(27, 161, 226, 0.85);
+}
+
+.brodetail img{
+	border: 1px solid #eee;
+}
+
+.pp_inline{
+	height:345px;
+	overflow:scroll;
+}
+
+.copy h4{
+	border-bottom: 1px solid #eee;
+	padding-bottom: 10px;
+	padding-top:10px;
+}
+
+.copy table{
+	margin-top: 15px;
+}
+
+.breadcrumbs, .breadcrumbs a{
+	color:#777;
+	font-size:11px;
+}
+
+.breadcrumbs a:hover{
+	color:#666;
+}
+
+.inlineform{
+	max-width: 600px;
+	background: #fafafa;
+	padding: 15px 15px;
+	border:1px solid #eee;
+}
+
+.da-img img{
+	border:1px solid #eee;
+}
+
+.control-wide .control-label{
+	width:60%;
+}
+
+.control-wide .controls{
+	text-align:right;
+}
+
+.control-wide input[type="text"], .control-wide input[type="password"], .control-wide textarea {
+	width: 30%;
+	margin-right: 10%;
+}
+
+.control-wide input[type="checkbox"] {
+	margin-right: 40%;
+}
+
+.donate img{
+	border:1px solid #eee;
+}
+
+header .coatofarms{
+	background:url(../img/site/coatofarms-header.png) top right no-repeat;
+	line-height: 111px;
+}
+
+footer .coatofarms{
+	background:url(../img/site/coatofarms-footer.png) top right no-repeat;
+	line-height:80px;
+}
+
+@media (max-width: 767px){	
+	header .coatofarms{
+		display:none;
+	}
+
+	footer{
+		text-align: center;
+	}
+
+	footer .coatofarms{
+		background-position: top center;
+	}
+}
+
+@media (max-width: 979px){
+	.control-wide .controls {
+		text-align: left;
+	}
+}

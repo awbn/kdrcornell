@@ -147,6 +147,11 @@ Cookie::$salt = Kohana::$config->load('cookie.salt');
 Kohana::modules(Kohana::$config->load('modules')->as_array());
 
 /**
+ * Set Default Cache config
+ */
+Cache::$default = 'default';
+
+/**
  * Include core routes.  Don't throw an exception if not found, as some modules may contain routes.
  */
 if (is_file(APPPATH.'routes/routes'.EXT))
