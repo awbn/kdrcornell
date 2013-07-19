@@ -96,7 +96,7 @@ class Controller_Pages extends Controller_Template {
 		
 		if( ! $facebook_data = Cache::instance()->get('facebook_album_data', FALSE)){
 
-			$token = "BAAHaYQXUuDUBABGiY9ZAoRGaDwTMh32wQX8tLHX44ylV4ei2ugPN5LXxw6aBNeRq7ZCbpWPxkDNiMQDIigWEEzdiywUFuszSZA56M8C8qdmFDW0Po9C0kajWEY4JoijKelPOTL8QqRsW6TJsi8KWMHqaMCaT1bXjzZACCB7g0azk2M5viWfoJEF5aJvbw1cZD";
+			$token = $_SERVER['FB_TOKEN'];
 			$url = "https://graph.facebook.com/121066925714/albums?fields=photos.limit(25).fields(picture,source,name),count,name,description,link&access_token=".$token;
 			
 			$response = Request::factory('https://graph.facebook.com/121075995714?fields=photos.fields(id,name,picture,source),name,count&access_token='.$token)->headers('Content-Type', 'application/json')->execute();
